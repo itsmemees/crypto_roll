@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CryptoLottery PVP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0f1a;--surface:#151829;--border:#1e2235;
+  --green:#4caf50;--blue:#2196f3;--orange:#ff9800;
+  --text:#fff;--muted:#8a8fa8;--dim:#4a5068;
+}
+html,body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter',-apple-system,sans-serif;
+  min-height:100vh;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.star{position:absolute;border-radius:50%;background:#fff}
+@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.85}}
+
+.app{
+  position:relative;z-index:1;
+  max-width:390px;margin:0 auto;
+  min-height:100vh;display:flex;flex-direction:column;
+  padding-bottom:68px;
+}
+
+/* ── Top nav ── */
+.top-nav{
+  padding:12px 16px 10px;
+  position:sticky;top:0;z-index:30;
+  background:var(--bg);
+}
+.nav-pills{
+  display:flex;background:var(--surface);
+  border-radius:50px;padding:4px;gap:4px;
+}
+.nav-pill{
+  flex:1;padding:10px 0;border:none;border-radius:50px;
+  font:700 14px/1 'Inter',sans-serif;cursor:pointer;
+  transition:all .2s;background:transparent;color:var(--muted);
+}
+.nav-pill.active{background:var(--blue);color:#fff}
+
+/* ── Screens ── */
+.screen{display:none;flex:1;padding:0 16px}
+.screen.active{display:block}
+
+/* ── Game header ── */
+.game-hdr{padding:10px 0 6px}
+.hdr-row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.status-left{display:flex;align-items:center;gap:6px}
+.status-lbl{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--muted)}
+.g-dot{
+  width:7px;height:7px;background:var(--green);border-radius:50%;
+  box-shadow:0 0 8px var(--green);
+  animation:pdot 2s ease-in-out infinite;
+}
+@keyframes pdot{
+  0%,100%{box-shadow:0 0 6px var(--green)}
+  50%{box-shadow:0 0 14px var(--green),0 0 22px rgba(76,175,80,.4)}
+}
+.online-badge{
+  background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.25);
+  color:var(--green);font:700 10px/1 'Inter',sans-serif;
+  padding:3px 8px;border-radius:50px;
+}
+.game-num{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em}
+.hdr-row2{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.bank-amt{font-size:26px;font-weight:900;letter-spacing:-.02em}
+.players-cnt{font-size:12px;font-weight:700;color:var(--muted)}
+.game-hash{font:10px/1 'Courier New',monospace;color:var(--dim);letter-spacing:.04em}
+
+/* ── Donut ── */
+.donut-wrap{
+  position:relative;width:280px;height:280px;
+  margin:10px auto 4px;
+}
+.donut-svg{width:100%;height:100%;overflow:visible}
+.donut-rotate{
+  transform-origin:140px 140px;
+  animation:spin 16s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.donut-bg{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:150px;height:150px;border-radius:50%;
+  background:var(--bg);z-index:1;
+}
+.donut-center{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;z-index:2;pointer-events:none;
+}
+.timer-val{font-size:34px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1}
+.timer-lbl{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.1em;margin-top:5px}
+.donut-tri{
+  position:absolute;top:2px;left:50%;transform:translateX(-50%);
+  font-size:15px;color:#fff;z-index:3;line-height:1;
+  text-shadow:0 0 10px rgba(255,255,255,.7);
+}
+
+/* ── Quick bet ── */
+.qbet{padding:8px 0}
+.qbet-row{display:flex;gap:5px}
+.qbtn{
+  flex:1;padding:9px 2px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);font:600 11px/1 'Inter',sans-serif;
+  cursor:pointer;transition:all .15s;text-align:center;
+}
+.qbtn:hover,.qbtn:active{
+  background:rgba(33,150,243,.12);
+  border-color:rgba(33,150,243,.35);color:var(--blue);
+}
+
+/* ── Action block ── */
+.action-blk{padding:6px 0 8px}
+.action-row{display:flex;gap:10px;margin-bottom:10px;align-items:center}
+.deposit-btn{
+  flex:1;padding:13px 16px;
+  background:linear-gradient(135deg,#4caf50,#43a047);
+  border:none;border-radius:50px;color:#fff;
+  font:700 14px/1 'Inter',sans-serif;cursor:pointer;
+  transition:all .15s;box-shadow:0 4px 18px rgba(76,175,80,.28);
+}
+.deposit-btn:hover{box-shadow:0 6px 24px rgba(76,175,80,.4);transform:translateY(-1px)}
+.balance-pill{
+  padding:13px 14px;
+  background:rgba(33,150,243,.12);border:1px solid rgba(33,150,243,.25);
+  border-radius:50px;color:var(--blue);
+  font:700 13px/1 'Inter',sans-serif;white-space:nowrap;
+}
+.bet-wrap{position:relative}
+.bet-prefix{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font:700 15px/1 'Inter',sans-serif;
+}
+.bet-input{
+  width:100%;padding:13px 14px 13px 28px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  color:#fff;font:600 15px/1 'Inter',sans-serif;
+  outline:none;transition:border-color .2s;
+}
+.bet-input::placeholder{color:var(--muted);font-weight:400}
+.bet-input:focus{border-color:rgba(33,150,243,.4)}
+
+/* ── Emoji ── */
+.emoji-row{
+  display:flex;justify-content:space-around;
+  padding:12px 6px;background:var(--surface);
+  border-radius:12px;margin:8px 0;
+}
+.emj{
+  font-size:22px;cursor:pointer;padding:4px;
+  border:none;background:none;user-select:none;
+  border-radius:8px;transition:transform .1s;
+}
+.emj.bounce{animation:ebounce .28s ease}
+@keyframes ebounce{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.35)}
+  70%{transform:scale(.92)}
+  100%{transform:scale(1)}
+}
+
+/* ── Player list ── */
+.plist-sec{padding:8px 0 16px}
+.plist-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.plist-title{font:800 11px/1 'Inter',sans-serif;letter-spacing:.1em;color:var(--muted)}
+.plist-bank{font:700 11px/1 'Inter',sans-serif;color:var(--muted)}
+.plist-bank b{color:#fff}
+.plist{display:flex;flex-direction:column}
+.prow{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 8px;margin:0 -8px;
+  border-bottom:1px solid var(--border);
+  border-radius:8px;transition:background .15s;
+}
+.prow:last-child{border-bottom:none}
+.prow:hover{background:rgba(255,255,255,.035)}
+.pidx{font:700 11px/1 'Inter',sans-serif;color:var(--dim);width:16px;text-align:center;flex-shrink:0}
+.pstripe{width:3px;height:34px;border-radius:3px;flex-shrink:0}
+.pavatar{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font:800 12px/1 'Inter',sans-serif;color:#fff;flex-shrink:0;
+}
+.pname{flex:1;font:700 12px/1 'Inter',sans-serif;letter-spacing:.03em}
+.pamt{font:700 12px/1 'Inter',sans-serif}
+.ppct{
+  background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.25);
+  color:var(--green);font:700 10px/1 'Inter',sans-serif;
+  padding:3px 7px;border-radius:50px;
+  min-width:42px;text-align:center;flex-shrink:0;
+}
+
+/* ── Bottom nav ── */
+.bnav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:390px;
+  background:rgba(10,12,24,.96);border-top:1px solid var(--border);
+  backdrop-filter:blur(12px);display:flex;z-index:40;
+}
+.btab{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:10px 0 12px;gap:3px;cursor:pointer;
+  border:none;background:none;
+  color:var(--muted);font:600 10px/1 'Inter',sans-serif;
+  transition:color .15s;
+}
+.btab.active{color:var(--blue)}
+.btab svg{width:22px;height:22px}
+
+/* ── History ── */
+.hist-hdr{font:800 11px/1 'Inter',sans-serif;letter-spacing:.1em;color:var(--muted);margin:14px 0 10px}
+.hlist{display:flex;flex-direction:column;gap:8px;padding-bottom:16px}
+.hcard{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:13px;
+}
+.hcard-top{display:flex;justify-content:space-between;margin-bottom:9px}
+.hgame{font:700 11px/1 'Inter',sans-serif;color:var(--muted)}
+.htime{font:400 10px/1 'Inter',sans-serif;color:var(--dim)}
+.hwinner{display:flex;align-items:center;gap:9px}
+.havatar{
+  width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font:800 10px/1 'Inter',sans-serif;color:#fff;flex-shrink:0;
+}
+.hwinner-info{flex:1}
+.hwinner-name{font:700 13px/1.4 'Inter',sans-serif}
+.hwinner-won{font:600 12px/1 'Inter',sans-serif;color:var(--green);margin-top:3px}
+.hbank{font:400 11px/1 'Inter',sans-serif;color:var(--muted);text-align:right;white-space:nowrap}
+
+/* ── Stubs ── */
+.stub{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:60vh;gap:14px;
+}
+.stub-ico{font-size:52px;opacity:.25}
+.stub-txt{font:600 14px/1 'Inter',sans-serif;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div class="app">
+
+  <!-- Top nav -->
+  <nav class="top-nav">
+    <div class="nav-pills">
+      <button class="nav-pill active" data-tab="game">Игра</button>
+      <button class="nav-pill" data-tab="history">История</button>
+    </div>
+  </nav>
+
+  <!-- GAME SCREEN -->
+  <div class="screen active" id="screen-game">
+
+    <div class="game-hdr">
+      <div class="hdr-row1">
+        <div class="status-left">
+          <span class="status-lbl">СБОР СТАВОК</span>
+          <span class="g-dot"></span>
+          <span class="online-badge">47 ОНЛАЙН</span>
+        </div>
+        <span class="game-num">ИГРА #83421</span>
+      </div>
+      <div class="hdr-row2">
+        <span class="bank-amt">1&nbsp;247,50 USDT</span>
+        <span class="players-cnt">8 ИГРОКОВ</span>
+      </div>
+      <div class="game-hash">0x4f2a8c1d9e3b7f05a2c4d6e8f0b1a3d5c7e9f2b4</div>
+    </div>
+
+    <!-- Donut -->
+    <div class="donut-wrap">
+      <svg class="donut-svg" viewBox="0 0 280 280" id="donutSvg">
+        <g class="donut-rotate" id="donutGroup"></g>
+      </svg>
+      <div class="donut-bg"></div>
+      <div class="donut-tri">▼</div>
+      <div class="donut-center">
+        <div class="timer-val" id="timerVal">01:00</div>
+        <div class="timer-lbl">ОСТАЛОСЬ</div>
+      </div>
+    </div>
+
+    <!-- Quick bet -->
+    <div class="qbet">
+      <div class="qbet-row">
+        <button class="qbtn" data-val="1">$1</button>
+        <button class="qbtn" data-val="5">$5</button>
+        <button class="qbtn" data-val="10">$10</button>
+        <button class="qbtn" data-val="25">$25</button>
+        <button class="qbtn" data-val="50">$50</button>
+        <button class="qbtn" data-val="100">$100</button>
+        <button class="qbtn" data-val="half">½</button>
+      </div>
+    </div>
+
+    <!-- Action block -->
+    <div class="action-blk">
+      <div class="action-row">
+        <button class="deposit-btn">+ Пополнить баланс</button>
+        <div class="balance-pill">0,00 USDT</div>
+      </div>
+      <div class="bet-wrap">
+        <span class="bet-prefix">$</span>
+        <input class="bet-input" id="betInput" type="number" placeholder="Сумма ставки" min="0" step="0.01">
+      </div>
+    </div>
+
+    <!-- Emoji -->
+    <div class="emoji-row">
+      <button class="emj">😁</button>
+      <button class="emj">😎</button>
+      <button class="emj">☠️</button>
+      <button class="emj">😢</button>
+      <button class="emj">😐</button>
+      <button class="emj">💩</button>
+      <button class="emj">🤡</button>
+    </div>
+
+    <!-- Players -->
+    <div class="plist-sec">
+      <div class="plist-hdr">
+        <span class="plist-title">ИГРОКИ · 8</span>
+        <span class="plist-bank">БАНК: <b>1&nbsp;247,50 USDT</b></span>
+      </div>
+      <div class="plist" id="playerList"></div>
+    </div>
+
+  </div><!-- /screen-game -->
+
+  <!-- HISTORY SCREEN -->
+  <div class="screen" id="screen-history">
+    <div class="hist-hdr">ИСТОРИЯ ИГР</div>
+    <div class="hlist" id="historyList"></div>
+  </div>
+
+  <!-- WASHER SCREEN -->
+  <div class="screen" id="screen-washer">
+    <div class="stub">
+      <div class="stub-ico">💧</div>
+      <div class="stub-txt">Washer — скоро</div>
+    </div>
+  </div>
+
+  <!-- PROFILE SCREEN -->
+  <div class="screen" id="screen-profile">
+    <div class="stub">
+      <div class="stub-ico">👤</div>
+      <div class="stub-txt">Профиль — скоро</div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bnav">
+    <button class="btab active" data-screen="game">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="13" rx="2"/>
+        <path d="M8 7V5a4 4 0 0 1 8 0v2"/>
+        <circle cx="9" cy="13.5" r="1.5" fill="currentColor" stroke="none"/>
+        <circle cx="15" cy="13.5" r="1.5" fill="currentColor" stroke="none"/>
+        <line x1="5.5" y1="13.5" x2="7.5" y2="13.5"/>
+        <line x1="16.5" y1="13.5" x2="18.5" y2="13.5"/>
+      </svg>
+      PVP
+    </button>
+    <button class="btab" data-screen="washer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="12" cy="13" r="4"/>
+        <circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>
+        <line x1="10.5" y1="7.5" x2="13.5" y2="7.5"/>
+      </svg>
+      Washer
+    </button>
+    <button class="btab" data-screen="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7"/>
+      </svg>
+      Профиль
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const players = [
+  {name:'CRYPTOKING', amount:350.00, color:'#4caf50'},
+  {name:'MOONRIDER',  amount:210.50, color:'#2196f3'},
+  {name:'NEON_WOLF',  amount:180.00, color:'#ff9800'},
+  {name:'DARKSTAR',   amount:145.00, color:'#e91e63'},
+  {name:'SATOSHI_X',  amount:120.00, color:'#9c27b0'},
+  {name:'LASER_CAT',  amount: 98.00, color:'#00bcd4'},
+  {name:'BYTEMASTER', amount: 89.00, color:'#ff5722'},
+  {name:'ZERODAY',    amount: 55.00, color:'#ffc107'},
+];
+const total = players.reduce((s,p)=>s+p.amount,0);
+
+const history = [
+  {id:83420,time:'сегодня 14:32',winner:'CRYPTOKING',color:'#4caf50',won:1189.30,bank:1247.50},
+  {id:83419,time:'сегодня 14:18',winner:'MOONRIDER', color:'#2196f3',won: 876.20,bank: 920.00},
+  {id:83418,time:'сегодня 14:03',winner:'NEON_WOLF', color:'#ff9800',won:1456.80,bank:1530.00},
+  {id:83417,time:'сегодня 13:49',winner:'DARKSTAR',  color:'#e91e63',won: 654.10,bank: 687.00},
+  {id:83416,time:'сегодня 13:35',winner:'SATOSHI_X', color:'#9c27b0',won:2103.50,bank:2214.00},
+  {id:83415,time:'сегодня 13:21',winner:'LASER_CAT', color:'#00bcd4',won: 445.60,bank: 468.00},
+  {id:83414,time:'сегодня 13:07',winner:'ZERODAY',   color:'#ffc107',won: 789.90,bank: 831.00},
+  {id:83413,time:'сегодня 12:53',winner:'BYTEMASTER',color:'#ff5722',won:1234.00,bank:1299.00},
+  {id:83412,time:'сегодня 12:39',winner:'CRYPTOKING',color:'#4caf50',won: 567.80,bank: 598.00},
+  {id:83411,time:'сегодня 12:25',winner:'MOONRIDER', color:'#2196f3',won:3210.40,bank:3381.00},
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function ini(name){
+  const p=name.split(/[_\s]+/);
+  return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():name.slice(0,2);
+}
+
+function polar(cx,cy,r,deg){
+  const rad=(deg-90)*Math.PI/180;
+  return {x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};
+}
+
+function arcPath(cx,cy,ro,ri,a0,a1,gap=1.4){
+  const s=a0+gap/2, e=a1-gap/2;
+  if(e<=s) return '';
+  const p1=polar(cx,cy,ro,s), p2=polar(cx,cy,ro,e);
+  const p3=polar(cx,cy,ri,e), p4=polar(cx,cy,ri,s);
+  const la=(e-s)>180?1:0;
+  return `M${p1.x},${p1.y}A${ro},${ro},0,${la},1,${p2.x},${p2.y}L${p3.x},${p3.y}A${ri},${ri},0,${la},0,${p4.x},${p4.y}Z`;
+}
+
+function svgEl(tag,attrs){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));
+  return el;
+}
+
+// ── Stars ─────────────────────────────────────────────────────────────────────
+(function initStars(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<90;i++){
+    const s=document.createElement('div');
+    const sz=Math.random()*2+0.5;
+    s.className='star';
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;`+
+      `width:${sz}px;height:${sz}px;`+
+      `animation:twinkle ${(Math.random()*3+2).toFixed(1)}s ease-in-out `+
+      `${(Math.random()*4).toFixed(1)}s infinite;`;
+    c.appendChild(s);
+  }
+})();
+
+// ── Donut ─────────────────────────────────────────────────────────────────────
+(function renderDonut(){
+  const g=document.getElementById('donutGroup');
+  const CX=140,CY=140,RO=116,RI=72,RA=94;
+  let angle=0;
+
+  players.forEach(p=>{
+    const sweep=(p.amount/total)*360;
+    const end=angle+sweep;
+    const mid=angle+sweep/2;
+
+    // Segment
+    const path=svgEl('path',{
+      d:arcPath(CX,CY,RO,RI,angle,end),
+      fill:p.color,opacity:'0.88'
+    });
+    g.appendChild(path);
+
+    // Avatar circle
+    const ap=polar(CX,CY,RA,mid);
+    g.appendChild(svgEl('circle',{
+      cx:ap.x,cy:ap.y,r:'18',
+      fill:p.color,stroke:'#0d0f1a','stroke-width':'2.5'
+    }));
+
+    // Avatar initials
+    const t=svgEl('text',{
+      x:ap.x,y:ap.y,
+      'text-anchor':'middle','dominant-baseline':'central',
+      fill:'#fff','font-size':'10','font-weight':'800',
+      'font-family':'Inter,sans-serif'
+    });
+    t.textContent=ini(p.name);
+    g.appendChild(t);
+
+    angle=end;
+  });
+})();
+
+// ── Player list ───────────────────────────────────────────────────────────────
+(function renderPlayers(){
+  const list=document.getElementById('playerList');
+  players.forEach((p,i)=>{
+    const pct=(p.amount/total*100).toFixed(1);
+    const row=document.createElement('div');
+    row.className='prow';
+    row.innerHTML=
+      `<span class="pidx">${i+1}</span>`+
+      `<div class="pstripe" style="background:${p.color}"></div>`+
+      `<div class="pavatar" style="background:${p.color}">${ini(p.name)}</div>`+
+      `<span class="pname">${p.name}</span>`+
+      `<span class="pamt">${p.amount.toFixed(2)}</span>`+
+      `<span class="ppct">${pct}%</span>`;
+    list.appendChild(row);
+  });
+})();
+
+// ── History ───────────────────────────────────────────────────────────────────
+(function renderHistory(){
+  const list=document.getElementById('historyList');
+  history.forEach(h=>{
+    const card=document.createElement('div');
+    card.className='hcard';
+    card.innerHTML=
+      `<div class="hcard-top">`+
+        `<span class="hgame">ИГРА #${h.id}</span>`+
+        `<span class="htime">${h.time}</span>`+
+      `</div>`+
+      `<div class="hwinner">`+
+        `<div class="havatar" style="background:${h.color}">${ini(h.winner)}</div>`+
+        `<div class="hwinner-info">`+
+          `<div class="hwinner-name">${h.winner}</div>`+
+          `<div class="hwinner-won">+${h.won.toFixed(2)} USDT</div>`+
+        `</div>`+
+        `<div class="hbank">${h.bank.toFixed(2)}<br><span style="font-size:9px;color:var(--dim)">USDT банк</span></div>`+
+      `</div>`;
+    list.appendChild(card);
+  });
+})();
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+let timeLeft=60;
+const timerEl=document.getElementById('timerVal');
+function tick(){
+  const m=Math.floor(timeLeft/60);
+  const s=timeLeft%60;
+  timerEl.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  timeLeft=timeLeft>0?timeLeft-1:60;
+}
+tick();
+setInterval(tick,1000);
+
+// ── Quick bet ─────────────────────────────────────────────────────────────────
+const betInput=document.getElementById('betInput');
+document.querySelectorAll('.qbtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const v=btn.dataset.val;
+    if(v==='half'){
+      const cur=parseFloat(betInput.value)||0;
+      betInput.value=cur>0?(cur/2).toFixed(2):'';
+    } else {
+      betInput.value=v;
+    }
+    betInput.focus();
+  });
+});
+
+// ── Emoji bounce ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.emj').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    btn.classList.remove('bounce');
+    void btn.offsetWidth;
+    btn.classList.add('bounce');
+    btn.addEventListener('animationend',()=>btn.classList.remove('bounce'),{once:true});
+  });
+});
+
+// ── Tab / screen switching ────────────────────────────────────────────────────
+const ALL_SCREENS=['game','history','washer','profile'];
+
+function showScreen(name){
+  ALL_SCREENS.forEach(id=>{
+    document.getElementById('screen-'+id).classList.toggle('active',id===name);
+  });
+}
+
+document.querySelectorAll('.nav-pill').forEach(pill=>{
+  pill.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active');
+    const tab=pill.dataset.tab;
+    showScreen(tab==='history'?'history':'game');
+    // sync bottom nav
+    document.querySelectorAll('.btab').forEach(b=>{
+      b.classList.toggle('active',b.dataset.screen===tab||
+        (tab==='game'&&b.dataset.screen==='game'));
+    });
+  });
+});
+
+document.querySelectorAll('.btab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.btab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const sc=tab.dataset.screen;
+    showScreen(sc);
+    // sync top nav pills
+    document.querySelectorAll('.nav-pill').forEach(p=>{
+      p.classList.toggle('active',
+        (sc==='game'&&p.dataset.tab==='game')||
+        (sc==='history'&&p.dataset.tab==='history'));
+    });
+  });
+});
+</script>
+</body>
+</html>
